@@ -24,15 +24,19 @@ Semi-Supervised Camouflaged Object Detection（SSCOD）：半监督伪装目标�
 
 ### 模型
 
-现有的基于师生框架的SSCOD方法在监督信息稀缺的情况下存在严重的预测偏差和误差传播问题，且其多网络架构会导致较高的计算开销和有限的可扩展性，本文设计的ST-SAM框架，采用自训练策略，根本上规避了模型间的预测偏差。此外，本文的设计还利用SAM在特定任务中的潜力，以减轻自训练的误差累积。
+现有的基于师生框架的SSCOD方法在监督信息稀缺的情况下存在严重的预测偏差和误差传播问题，且其多网络架构会导致较高的计算开销和有限的可扩展性，本文设计的ST-SAM框架，采用自训练策略，根本上规避了模型间的预测偏差。此外，论文的设计还利用SAM在特定任务中的潜力，以减轻自训练的误差累积。
 
-简单来说，本文在自训练框架（self-training）的基础上，设计了EDF和DPC两个模块，利用SAM强大的能力，增强了伪标签的可信度。
+简单来说，该论文在自训练框架（self-training）的基础上，设计了EDF和DPC两个模块，DPC模块利用SAM强大的能力，增强了伪标签的可信度。同时，需要注意到，在论文中的伪装目标检测的任务中，训练与微调的只有COD网络Net，SAM并不直接参与COD任务的训练循环。SAM的作用非常特定：利用Net生成的、带有领域知识的提示，来生成一个高质量的分割结果，这个结果被用来和Net的原始伪标签进行“相互校正”（mutual correction），从而产生更可靠的伪标签。SAM是作为一个外部的、强大的分割引擎来使用的。
+
+    原文：
+    The COD network initializes the encoder parameters using ConvNeXt-B, 
+    while SAM adopts the parameters and settings of vit-h.
 
 #### 基本结构：
 
 ![ST-SAM模型结构图](./pictures/ST-SAM.png)
 
-1. **熵基动态过滤（Entropy-based Dynamic Filtering strategy，EDF）**
+1. **基于熵的动态过滤策略（Entropy-based Dynamic Filtering strategy，EDF）**
     
     EDF 模块通过局部熵计算、全局熵评估、不确定性筛选、像素加权、动态扩展五个关键步骤，完成对初始伪标签的清洗与优化，具体流程如下：
     
@@ -103,7 +107,7 @@ Semi-Supervised Camouflaged Object Detection（SSCOD）：半监督伪装目标�
     <br>
     <br>
 
-2. **领域提示引导互校正（Domain Prompt-guided Mutual Correction strategy，DPC）**
+2. **领域提示引导的相互校正策略（Domain Prompt-guided Mutual Correction strategy，DPC）**
 
     作用：注入领域知识到 SAM，生成高质量伪标签，与模型伪标签互校正。
 
@@ -150,8 +154,9 @@ Semi-Supervised Camouflaged Object Detection（SSCOD）：半监督伪装目标�
     $$  
     此时$P_i^S$因融入COD领域知识，相比直接使用SAM的输出，在伪装目标边界完整性、小目标检出率上显著提升。
 
+    <br>
 
-    步骤3：伪标签互校正（生成$P_i^C$）
+    **（3）步骤3：伪标签互校正（生成$P_i^C$）**
     
     将$P_i^E$与$P_i^S$**等比例融合**，相互修正误差：
     
@@ -208,11 +213,11 @@ Semi-Supervised Camouflaged Object Detection（SSCOD）：半监督伪装目标�
 
 **模块的有效性：**
 
-    （1）baseline：只用少量有标签样本集 $D_L$
-    （2）self-training: 经典的自训练策略，伪标签通过COD网络从无标签样本$D_U$获得，以直接扩展$D_L$
-    （3）只加入EDF
-    （4）只加入DPC
-    （5）EDF+DPC
+（1）baseline：只用少量有标签样本集 $D_L$
+（2）self-training: 经典的自训练策略，伪标签通过COD网络从无标签样本$D_U$获得，以直接扩展$D_L$
+（3）只加入EDF
+（4）只加入DPC
+（5）EDF+DPC
     
 ![模块有效性](./pictures/table2.png)
 
@@ -220,15 +225,15 @@ Semi-Supervised Camouflaged Object Detection（SSCOD）：半监督伪装目标�
 
 EDF的动态扩展策略的有效性：
 
-    （1）一次性扩展所有合格样本
-    （2）每一步按同等比例（20%）扩展样本进行学习
-    （3）随着训练轮次动态扩展
+（1）一次性扩展所有合格样本
+（2）每一步按同等比例（20%）扩展样本进行学习
+（3）随着训练轮次动态扩展
 
 关于样本学习顺序：
 
-    （1）先学习高熵样本
-    （2）随机选择
-    （3）先学习低熵样本
+（1）先学习高熵样本
+（2）随机选择
+（3）先学习低熵样本
     
 ![EDF有效性](./pictures/table3.png)
 
@@ -236,15 +241,15 @@ EDF的动态扩展策略的有效性：
     
 关于不同提示策略：
 
-    （1）多点提示
-    （2）单框提示
-    （3）混合提示
+（1）多点提示
+（2）单框提示
+（3）混合提示
 
 关于融合方法：
 
-    （1）取交集
-    （2）取并集
-    （3）等比例融合
+（1）取交集
+（2）取并集
+（3）等比例融合
 
 ![DPC有效性](./pictures/table4.png)
 
